@@ -20,11 +20,13 @@ def padding(artificial_payload, raw_payload):
     # Initialize to find a byte with the max frequency difference in favor of artificial_payload
     max_diff = -1
     padding_byte = b"\x00"  # Default padding byte
-    # Loop through bytes in artificial_frequency
-    for byte, freq in artificial_frequency.items():
+    # Loop through bytes in artificial_frequency and raw_payload_frequency
+    for byte in set(artificial_frequency.keys()).union(raw_payload_frequency.keys()):
+        artificial_freq = artificial_frequency.get(byte, 0)
         raw_freq = raw_payload_frequency.get(byte, 0)
-        diff = freq - raw_freq
-        # Looking for a byte more common in artificial_payload than in raw_payload
+        diff = raw_freq - artificial_freq if byte in artificial_frequency else raw_freq
+        # Looking for a byte more common in artificial_payload than in raw_payload,
+        # or only in raw_payload
         if diff > max_diff:
             max_diff = diff
             padding_byte = byte if isinstance(byte, bytes) else bytes([byte])
@@ -36,6 +38,7 @@ def padding(artificial_payload, raw_payload):
         raw_payload += padding_byte * padding_needed
 
     return raw_payload
+
     # To simplify padding, you only need to find the maximum frequency difference for each
     # byte in raw_payload and artificial_payload, and pad that byte at the end of the
     # raw_payload.
