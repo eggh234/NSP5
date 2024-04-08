@@ -8,34 +8,33 @@ from collections import Counter
 
 
 def padding(artificial_payload, raw_payload):
-    # Ensure inputs are bytearrays for binary data manipulation
-    if isinstance(artificial_payload, str):
-        artificial_payload = artificial_payload.encode()
-    if isinstance(raw_payload, str):
-        raw_payload = raw_payload.encode()
+    """
+    Finds the byte with the largest frequency difference favoring the artificial payload and appends it to the raw_payload.
+    Called repeatedly when the raw_payload is smaller than the artificial_payload.
+    Handles the edge case where a byte in the raw_payload is not present in the artificial_payload by using its own frequency.
+    """
+    artificial_freq = frequency(artificial_payload)
+    raw_freq = frequency(raw_payload)
 
-    artificial_frequency = frequency(artificial_payload)
-    raw_payload_frequency = frequency(raw_payload)
-
-    # Initialize to find a byte with the max frequency difference in favor of artificial_payload
-    max_diff = -1
-    padding_byte = b"\x00"  # Default padding byte
-    # Loop through bytes in artificial_frequency and raw_payload_frequency
-    for byte in set(artificial_frequency.keys()).union(raw_payload_frequency.keys()):
-        artificial_freq = artificial_frequency.get(byte, 0)
-        raw_freq = raw_payload_frequency.get(byte, 0)
-        diff = raw_freq - artificial_freq if byte in artificial_frequency else raw_freq
-        # Looking for a byte more common in artificial_payload than in raw_payload,
-        # or only in raw_payload
+    max_diff = 0
+    padding_byte = None
+    # Find the byte with the largest positive frequency difference
+    for byte in set(artificial_freq).union(raw_freq):
+        diff = artificial_freq.get(byte, 0) - raw_freq.get(byte, 0)
+        if byte not in artificial_freq:
+            diff = raw_freq[byte]
         if diff > max_diff:
             max_diff = diff
-            padding_byte = byte if isinstance(byte, bytes) else bytes([byte])
+            padding_byte = byte
 
-    # Calculate how many padding bytes are needed
-    padding_needed = len(artificial_payload) - len(raw_payload)
-    if padding_needed > 0:
-        # Append the chosen padding_byte to the raw_payload as many times as needed
-        raw_payload += padding_byte * padding_needed
+    # Ensure the padding_byte is a byte object
+    padding_byte = (
+        padding_byte if isinstance(padding_byte, bytes) else bytes([padding_byte])
+    )
+
+    # Append the padding_byte to raw_payload if needed
+    while len(raw_payload) < len(artificial_payload):
+        raw_payload += padding_byte
 
     return raw_payload
 
