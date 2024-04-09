@@ -1,49 +1,45 @@
-import struct
-import math
-import random
 from frequency import frequency
-from collections import Counter
 
 
 def padding(artificial_payload, raw_payload):
     """
-    Appends the byte with the maximum frequency difference to the raw_payload.
-    If a byte is not present in the artificial_payload, its frequency in the
-    raw_payload is used as the difference. The padding process continues until
-    the length of raw_payload matches the length of artificial_payload.
+    Append the byte with the largest byte frequency difference to raw_payload.
+    If a byte is only in raw_payload, its frequency is used as the difference.
+    Each call to this function pads only one byte at a time.
     """
+    # Calculate the frequency of each byte in both payloads
     artificial_freq = frequency(artificial_payload)
     raw_freq = frequency(raw_payload)
 
+    # Determine the byte with the largest difference
     max_diff = -1
     padding_byte = None
 
-    # Consider all unique bytes from both artificial and raw payloads
-    unique_bytes = set(artificial_freq.keys()).union(raw_freq.keys())
+    # Check each byte in the raw_payload
+    for byte, raw_byte_freq in raw_freq.items():
+        artificial_byte_freq = artificial_freq.get(byte, 0)
 
-    # Find the byte with the maximum frequency difference
-    for byte in unique_bytes:
-        # If the byte is only in raw_payload, the diff is just its raw frequency
+        # If the byte is not in artificial_payload, use the raw_payload frequency
         diff = (
-            raw_freq[byte]
+            raw_byte_freq
             if byte not in artificial_freq
-            else artificial_freq.get(byte, 0) - raw_freq.get(byte, 0)
+            else artificial_byte_freq - raw_byte_freq
         )
 
+        # Find the byte with the max diff to use for padding
         if diff > max_diff:
             max_diff = diff
             padding_byte = byte
 
-    # Ensure padding_byte is a bytes object
+    # Ensure padding_byte is a byte for appending
     padding_byte = (
-        bytes([padding_byte]) if isinstance(padding_byte, int) else padding_byte
+        padding_byte if isinstance(padding_byte, bytes) else bytes([padding_byte])
     )
 
-    # Calculate how many padding bytes are needed
-    padding_needed = len(artificial_payload) - len(raw_payload)
-    if padding_needed > 0:
-        # Append the padding_byte to raw_payload as many times as needed
-        raw_payload += padding_byte * padding_needed
+    # Pad the raw_payload if it's shorter than the artificial_payload
+    if len(raw_payload) < len(artificial_payload):
+        # Append one byte of padding
+        raw_payload += padding_byte
 
     return raw_payload
 
