@@ -8,63 +8,52 @@ from collections import Counter
 from frequency import *
 
 
-import random
-from frequency import frequency
-
-
 def substitute(attack_payload, substitution_table):
-    """
-    Substitutes each byte in the attack_payload with a byte from the substitution_table.
-    It picks a byte based on the weighted frequency as given in the table.
-    """
-    b_attack_payload = bytearray(attack_payload)
+    b_attack_payload = bytearray(attack_payload.encode("utf-8"))
     result = bytearray()
     xor_table = bytearray()
+    # Using the substitution table you generated to encrypt attack payload
+    # Note that you also need to generate a xor_table which will be used to decrypt
+    # the attack_payload
+    # i.e. (encrypted attack payload) XOR (xor_table) = (original attack payload)
 
     for byte in b_attack_payload:
-        # If the byte is in the table, we use the weighted probability to pick a substitution
-        if byte in substitution_table:
-            substitutions = substitution_table[byte]
-            weights = [freq for _, freq in substitutions]
-            chosen_byte = random.choices(
-                [byte for byte, _ in substitutions], weights=weights, k=1
-            )[0]
-            result.append(chosen_byte)
-            xor_table.append(byte ^ chosen_byte)
-        else:
-            # If the byte is not in the table, it's left unchanged (though this should not happen)
-            result.append(byte)
-            xor_table.append(0)  # XOR with 0 leaves the original byte unchanged
+        # Use the substitution table to find the replacement byte
+        substituted_byte = substitution_table.get(byte, byte)
+        result.append(substituted_byte)
 
-    return (xor_table, result)
+        # Prepare the xor_table for decryption
+        xor_byte = byte ^ substituted_byte
+        xor_table.append(xor_byte)
+    # Based on your implementattion of substitution table, please prepare result
+    # and xor_table as output
+    return (bytes(xor_table), bytes(result))
 
 
 def getSubstitutionTable(artificial_payload, attack_payload):
-    """
-    Generates a substitution table based on the frequency of bytes in both
-    the artificial and attack payloads. The substitution is one-to-many, meaning
-    each byte in the attack payload can be substituted by multiple bytes from
-    the artificial payload with weights based on their frequencies.
-    """
-    artificial_freq = frequency(artificial_payload)
-    attack_freq = frequency(attack_payload)
+    # Calculate the frequency of each byte in both payloads
+    artificial_frequency = frequency(artificial_payload.encode("utf-8"))
+    attack_frequency = frequency(attack_payload.encode("utf-8"))
 
-    # Create sorted lists from most to least frequent
-    sorted_artificial_freq = sorted(
-        artificial_freq.items(), key=lambda item: item[1], reverse=True
-    )
-    sorted_attack_freq = sorted(
-        attack_freq.items(), key=lambda item: item[1], reverse=True
-    )
+    # Sort the bytes by their frequency, from most to least frequent
+    sorted_artificial_frequency = sorting(artificial_frequency)
+    sorted_attack_frequency = sorting(attack_frequency)
 
     substitution_table = {}
-    for attack_byte, _ in sorted_attack_freq:
-        candidates = [
-            (byte, freq / artificial_freq[byte])
-            for byte, freq in sorted_artificial_freq
-        ]
-        substitution_table[attack_byte] = candidates
+    used_artificial_bytes = set()
 
+    # Iterate over the sorted frequencies of attack payload bytes
+    for attack_byte, _ in sorted_attack_frequency:
+        for artificial_byte, _ in sorted_artificial_frequency:
+            # Find the highest frequency artificial byte that hasn't been used yet
+            if artificial_byte not in used_artificial_bytes:
+                # Map the attack byte to this artificial byte
+                substitution_table[attack_byte] = artificial_byte
+                used_artificial_bytes.add(artificial_byte)
+                break
+    # Make sure your substitution table can be used in
+    # substitute(attack_payload, subsitution_table)
+    print(substitution_table)
     return substitution_table
 
 
