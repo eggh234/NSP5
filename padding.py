@@ -21,20 +21,22 @@ def padding(artificial_payload, raw_payload):
     # Get the max frequency difference and determine the padding_byte accordingly.
     for key, value in raw_payload_frequency.items():
         if key in artificial_frequency:
-            artificial_freq = artificial_frequency[key]
-            diff = value - artificial_freq
+            diff = value - artificial_frequency[key]
         else:
-            diff = value  # Use the raw_payload_frequency value directly if the key is not in artificial_frequency
+            # If key is not found in artificial_frequency, we use the value from raw_payload_frequency
+            diff = value
 
         if diff > max_diff:
-            padding_byte = key
             max_diff = diff
+            padding_byte = key  # Save the byte to use for padding
 
-    # Ensure padding_byte is of type bytes for consistency in appending
-    if isinstance(padding_byte, str):
-        padding_byte = padding_byte.encode()
-
-    raw_payload += padding_byte  # Append the determined padding byte to the raw_payload
+    # If max_diff is greater than zero, it means we have found a byte to pad
+    if max_diff > 0:
+        # Ensure padding_byte is an integer before converting to bytes
+        if isinstance(padding_byte, int):
+            padding_byte = bytes([padding_byte])
+        # Append the determined padding byte to the raw_payload
+        raw_payload += padding_byte
 
     return raw_payload
 
