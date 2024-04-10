@@ -16,53 +16,34 @@ def substitute(attack_payload, substitution_table):
     # i.e. (encrypted attack payload) XOR (xor_table) = (original attack payload)
     # b_attack_payload = bytearray(attack_payload, "utf8")
 
-    result = []
-    xor_table = []
-    # loop through all characters in the attaack payload
-    for i in range(len(attack_payload)):
-        list_sub = substitution_table[attack_payload[i]]
-        sub_prob_list = {}
-        replace_char_list = []
-        replace_char_prob_list = []
-        # if the attack payload only has a match of 1 list in the sub table, then
-        # use that as the substitute and add to the result and xor list
-        if len(list_sub) == 1:
-            temp = (list_sub[0])[0]
-            result.append(temp)
-            or1 = ord(attack_payload[i])
-            or2 = ord(temp)
-            final_xord = or1 ^ or2
-            xor_table.append(chr(final_xord))
+    # Convert the attack_payload to a bytearray for byte-wise operations
+    b_attack_payload = bytearray(attack_payload, "utf-8")
+    result = bytearray()
+    xor_table = bytearray()
 
-        # otherwise calculate the weights of each value in the
-        # mapping and randomly select one to enter into the xor and result table
-        else:
-            total = 0
-            # get total weight
-            for j in range(len(list_sub)):
-                total += (list_sub[j])[1]
-            for x in range(len(list_sub)):
-                sub_prob_list[(list_sub[x])[0]] = ((list_sub[x])[1]) / total
-                replace_char_list.append((list_sub[x])[0])
-                replace_char_prob_list.append((list_sub[x])[1] / total)
+    for byte in b_attack_payload:
+        # Retrieve the substitution list for the current byte
+        substitutions = substitution_table[byte]
 
-            # total_prob=0
-            # only used to verify normalization = 1
-            # for w in sub_prob_list.values():
-            #    total_prob += w;
-            ##
+        # Choose a replacement byte based on the substitution probabilities
+        choices, weights = zip(
+            *substitutions
+        )  # Unpack substitutions into choices and their weights
+        chosen_byte = numpy.random.choice(choices, p=weights)
 
-            # make  a selection from the mapping based on its probablity
-            random_val = numpy.random.choice(
-                a=replace_char_list, p=replace_char_prob_list
-            )
-            result.append(random_val)
-            or1 = ord(attack_payload[i])
-            or2 = ord(random_val)
-            final_xord = or1 ^ or2
-            xor_table.append(chr(final_xord))
+        # Append the chosen byte to the result
+        result.append(chosen_byte)
 
-    return (xor_table, result)
+        # Compute and append the XOR of the original and chosen byte for the xor_table
+        xor_value = byte ^ chosen_byte
+        xor_table.append(xor_value)
+
+    # Convert the result and xor_table to their string representations if necessary
+    # Depending on how you want to handle the output, this step may need adjustments
+    return (
+        bytes(xor_table).decode("utf-8", "replace"),
+        result.decode("utf-8", "replace"),
+    )
 
 
 def getSubstitutionTable(artificial_payload, attack_payload):
@@ -72,69 +53,54 @@ def getSubstitutionTable(artificial_payload, attack_payload):
 
     # Note that the frequency for each byte is provided below in dictionay format.
     # Please check frequency.py for more details
-    artificial_frequency = frequency(artificial_payload)
+    artificial_freq = frequency(artificial_payload)
+    attack_freq = frequency(attack_payload)
 
-    attack_frequency = frequency(attack_payload)
-    sorted_artificial_frequency = sorting(artificial_frequency)
-    sorted_attack_frequency = sorting(attack_frequency)
-
-    # number of distint characters in attack traffic
-    attack_len = len(sorted_attack_frequency)
-
-    # number of distincy characters in  normal/artificial
-    normal_len = len(sorted_artificial_frequency)
-
-    temp_sub_table = sorted_attack_frequency
-    temp_values = [
-        [] for i in range(attack_len)
-    ]  # initialize list of attack_len elements
-
-    for i in range(attack_len):
-        temp_values[i].append(sorted_artificial_frequency[i])
+    # Sort the frequencies in descending order
+    sorted_artificial_freq = sorted(
+        artificial_freq.items(), key=lambda x: x[1], reverse=True
+    )
+    sorted_attack_freq = sorted(attack_freq.items(), key=lambda x: x[1], reverse=True)
 
     substitution_table = {}
-    for i in range(len(temp_sub_table)):
-        temp_total = temp_sub_table[
-            i
-        ]  # ex ('t',.44) , need to get t and place in new table
-        temp_key = temp_total[0]
-        temp_val = temp_total[1]
-        substitution_table[temp_key] = temp_values[i]
+    attack_len = len(sorted_attack_freq)
+    normal_len = len(sorted_artificial_freq)
 
-    values_left = normal_len - attack_len
-    # Loop through the remaining values in the artifical payload
-    for j in range(values_left):
-        temp_list_comparison = {}
-        largest_ration = 0
-        largest_ration_key = ""
-        largest_ration_value = 0
+    # Assign initial substitutions from the top frequencies
+    for i in range(attack_len):
+        attack_byte = sorted_attack_freq[i][0]
+        # Start with the most frequent artificial byte not already used
+        for art_byte, _ in sorted_artificial_freq:
+            if not any(art_byte in subs for subs in substitution_table.values()):
+                if not substitution_table.get(attack_byte):
+                    substitution_table[attack_byte] = [
+                        (art_byte, artificial_freq[art_byte])
+                    ]
+                else:
+                    substitution_table[attack_byte].append(
+                        (art_byte, artificial_freq[art_byte])
+                    )
+                break
 
-        for i in range(attack_len):
-            # get the original frequency/ divide by new frequency
-            original_freq = (sorted_attack_frequency[i])[1]
-            original_key = (sorted_attack_frequency[i])[0]
-            total = 0
-            # Get the total frequency
-            for k in range(len(substitution_table[original_key])):
-                total += ((substitution_table[original_key])[k])[1]
-
-            new_freq = total
-            comparison = round(original_freq / new_freq, 3)
-            if comparison > largest_ration:
-                largest_ration_key = original_key
-                largest_ration_value = comparison
-                largest_ration = comparison
-
-            temp_list_comparison[original_key] = comparison
-
-        substitution_table[largest_ration_key].append(
-            sorted_artificial_frequency[attack_len + j]
+    # For remaining artificial bytes, distribute among attack bytes based on need
+    for j in range(attack_len, normal_len):
+        art_byte, art_freq = sorted_artificial_freq[j]
+        # Find the attack byte with the least total assigned frequency
+        least_assigned_byte = min(
+            substitution_table.keys(),
+            key=lambda k: sum(freq for _, freq in substitution_table[k]),
         )
+        substitution_table[least_assigned_byte].append((art_byte, art_freq))
 
+    # Normalize frequencies in the substitution table
+    for attack_byte in substitution_table:
+        total_freq = sum(freq for _, freq in substitution_table[attack_byte])
+        substitution_table[attack_byte] = [
+            (byte, freq / total_freq) for byte, freq in substitution_table[attack_byte]
+        ]
     # Make sure your substitution table can be used in
     print(substitution_table)
     # substitute(attack_payload, substitution_table)
-
     return substitution_table
 
 
