@@ -14,16 +14,13 @@ def substitute(attack_payload, substitution_table):
     result = []
     xor_table = []
 
-    # Initialize the index for the main while loop
-    i = 0
-    # Loop through all characters in the attack payload using a while loop
+    i = 0  # Initialize the index for the main while loop
     while i < len(attack_payload):
         list_sub = substitution_table[attack_payload[i]]
         replace_char_list = []
         replace_char_prob_list = []
 
-        # If the attack payload only has a match of 1 list in the sub table,
-        # then use that as the substitute and add to the result and xor list
+        # Handling for when the substitution list only has one entry
         if len(list_sub) == 1:
             temp = list_sub[0][0]  # Unpack the only substitute directly
             result.append(temp)
@@ -32,23 +29,19 @@ def substitute(attack_payload, substitution_table):
             final_xord = or1 ^ or2
             xor_table.append(chr(final_xord))
         else:
-            # Initialize variables for the inner while loops
             j = 0
             total = 0
-            # Get total weight using a while loop
             while j < len(list_sub):
                 total += list_sub[j][1]
                 j += 1
 
             x = 0
-            # Calculate the weights of each value in the mapping using a while loop
             while x < len(list_sub):
                 char, weight = list_sub[x]
                 replace_char_list.append(char)
                 replace_char_prob_list.append(weight / total)
                 x += 1
 
-            # Make a selection from the mapping based on its probability
             random_val = numpy.random.choice(
                 a=replace_char_list, p=replace_char_prob_list
             )
@@ -64,12 +57,6 @@ def substitute(attack_payload, substitution_table):
 
 
 def getSubstitutionTable(artificial_payload, attack_payload):
-    # You will need to generate a substitution table which can be used to encrypt the attack
-    # body by replacing the most frequent byte in attack body by the most frequent byte in
-    # artificial profile one by one
-
-    # Note that the frequency for each byte is provided below in dictionay format.
-    # Please check frequency.py for more details
     artificial_frequency = frequency(artificial_payload)
     attack_frequency = frequency(attack_payload)
     sorted_artificial_frequency = sorting(artificial_frequency)
