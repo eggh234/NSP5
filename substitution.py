@@ -10,19 +10,7 @@ from frequency import *
 
 
 def substitute(attack_payload, substitution_table):
-    # Using the substitution table you generated to encrypt attack payload
-    # Note that you also need to generate a xor_table which will be used to decrypt
-    # the attack_payload
-    # i.e. (encrypted attack payload) XOR (xor_table) = (original attack payload)
-    # b_attack_payload = bytearray(attack_payload, "utf8")
-
     b_attack_payload = bytearray(attack_payload, "utf8")
-    result = []
-    xor_table = []
-    # loop through all characters in the attaack payload
-
-
-def substitute(attack_payload, substitution_table):
     result = []
     xor_table = []
 
@@ -83,68 +71,56 @@ def getSubstitutionTable(artificial_payload, attack_payload):
     # Note that the frequency for each byte is provided below in dictionay format.
     # Please check frequency.py for more details
     artificial_frequency = frequency(artificial_payload)
-
     attack_frequency = frequency(attack_payload)
     sorted_artificial_frequency = sorting(artificial_frequency)
     sorted_attack_frequency = sorting(attack_frequency)
 
-    # number of distint characters in attack traffic
     attack_len = len(sorted_attack_frequency)
-
-    # number of distincy characters in  normal/artificial
     normal_len = len(sorted_artificial_frequency)
 
     temp_sub_table = sorted_attack_frequency
-    temp_values = [
-        [] for i in range(attack_len)
-    ]  # initialize list of attack_len elements
+    temp_values = [[] for _ in range(attack_len)]
 
-    for i in range(attack_len):
+    i = 0
+    while i < attack_len:
         temp_values[i].append(sorted_artificial_frequency[i])
+        i += 1
 
     substitution_table = {}
-    for i in range(len(temp_sub_table)):
-        temp_total = temp_sub_table[
-            i
-        ]  # ex ('t',.44) , need to get t and place in new table
+    i = 0
+    while i < len(temp_sub_table):
+        temp_total = temp_sub_table[i]
         temp_key = temp_total[0]
-        temp_val = temp_total[1]
         substitution_table[temp_key] = temp_values[i]
+        i += 1
 
     values_left = normal_len - attack_len
-    # Loop through the remaining values in the artifical payload
-    for j in range(values_left):
+    j = 0
+    while j < values_left:
         temp_list_comparison = {}
-        largest_ration = 0
-        largest_ration_key = ""
-        largest_ration_value = 0
-
-        for i in range(attack_len):
-            # get the original frequency/ divide by new frequency
-            original_freq = (sorted_attack_frequency[i])[1]
-            original_key = (sorted_attack_frequency[i])[0]
-            total = 0
-            # Get the total frequency
-            for k in range(len(substitution_table[original_key])):
-                total += ((substitution_table[original_key])[k])[1]
+        largest_ratio = 0
+        largest_ratio_key = ""
+        i = 0
+        while i < attack_len:
+            original_freq = sorted_attack_frequency[i][1]
+            original_key = sorted_attack_frequency[i][0]
+            total = sum(val[1] for val in substitution_table[original_key])
 
             new_freq = total
             comparison = round(original_freq / new_freq, 3)
-            if comparison > largest_ration:
-                largest_ration_key = original_key
-                largest_ration_value = comparison
-                largest_ration = comparison
+            if comparison > largest_ratio:
+                largest_ratio_key = original_key
+                largest_ratio = comparison
 
             temp_list_comparison[original_key] = comparison
+            i += 1
 
-        substitution_table[largest_ration_key].append(
+        substitution_table[largest_ratio_key].append(
             sorted_artificial_frequency[attack_len + j]
         )
+        j += 1
 
-    # Make sure your substitution table can be used in
     print(substitution_table)
-    # substitute(attack_payload, substitution_table)
-
     return substitution_table
 
 
