@@ -25,6 +25,9 @@ def substitute(attack_payload, substitution_table):
 import numpy
 
 
+import numpy
+
+
 def substitute(attack_payload, substitution_table):
     # Convert the attack_payload to a bytearray for manipulation
     b_attack_payload = bytearray(attack_payload, "utf8")
