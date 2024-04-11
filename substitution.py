@@ -22,56 +22,45 @@ def substitute(attack_payload, substitution_table):
     # loop through all characters in the attaack payload
 
 
-import numpy
-
-
-import numpy
-
-
 def substitute(attack_payload, substitution_table):
-    # Using the substitution table you generated to encrypt attack payload
-    # Note that you also need to generate a xor_table which will be used to decrypt
-    # the attack_payload
-    # i.e. (encrypted attack payload) XOR (xor_table) = (original attack payload)
-    # b_attack_payload = bytearray(attack_payload, "utf8")
-
     result = []
     xor_table = []
-    # loop through all characters in the attaack payload
-    for i in range(len(attack_payload)):
+
+    # Initialize the index for the main while loop
+    i = 0
+    # Loop through all characters in the attack payload using a while loop
+    while i < len(attack_payload):
         list_sub = substitution_table[attack_payload[i]]
-        sub_prob_list = {}
         replace_char_list = []
         replace_char_prob_list = []
-        # if the attack payload only has a match of 1 list in the sub table, then
-        # use that as the substitute and add to the result and xor list
+
+        # If the attack payload only has a match of 1 list in the sub table,
+        # then use that as the substitute and add to the result and xor list
         if len(list_sub) == 1:
-            temp = (list_sub[0])[0]
+            temp = list_sub[0][0]  # Unpack the only substitute directly
             result.append(temp)
             or1 = ord(attack_payload[i])
             or2 = ord(temp)
             final_xord = or1 ^ or2
             xor_table.append(chr(final_xord))
-
-        # otherwise calculate the weights of each value in the
-        # mapping and randomly select one to enter into the xor and result table
         else:
+            # Initialize variables for the inner while loops
+            j = 0
             total = 0
-            # get total weight
-            for j in range(len(list_sub)):
-                total += (list_sub[j])[1]
-            for x in range(len(list_sub)):
-                sub_prob_list[(list_sub[x])[0]] = ((list_sub[x])[1]) / total
-                replace_char_list.append((list_sub[x])[0])
-                replace_char_prob_list.append((list_sub[x])[1] / total)
+            # Get total weight using a while loop
+            while j < len(list_sub):
+                total += list_sub[j][1]
+                j += 1
 
-            # total_prob=0
-            # only used to verify normalization = 1
-            # for w in sub_prob_list.values():
-            #    total_prob += w;
-            ##
+            x = 0
+            # Calculate the weights of each value in the mapping using a while loop
+            while x < len(list_sub):
+                char, weight = list_sub[x]
+                replace_char_list.append(char)
+                replace_char_prob_list.append(weight / total)
+                x += 1
 
-            # make  a selection from the mapping based on its probablity
+            # Make a selection from the mapping based on its probability
             random_val = numpy.random.choice(
                 a=replace_char_list, p=replace_char_prob_list
             )
@@ -80,6 +69,8 @@ def substitute(attack_payload, substitution_table):
             or2 = ord(random_val)
             final_xord = or1 ^ or2
             xor_table.append(chr(final_xord))
+
+        i += 1  # Move to the next character in the payload
 
     return (xor_table, result)
 
