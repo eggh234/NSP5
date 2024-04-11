@@ -16,53 +16,55 @@ def substitute(attack_payload, substitution_table):
     # i.e. (encrypted attack payload) XOR (xor_table) = (original attack payload)
     # b_attack_payload = bytearray(attack_payload, "utf8")
 
+    b_attack_payload = bytearray(attack_payload, "utf8")
     result = []
     xor_table = []
     # loop through all characters in the attaack payload
-    for i in range(len(attack_payload)):
-        list_sub = substitution_table[attack_payload[i]]
-        sub_prob_list = {}
+
+
+import numpy
+
+
+def substitute(attack_payload, substitution_table):
+    # Convert the attack_payload to a bytearray for manipulation
+    b_attack_payload = bytearray(attack_payload, "utf8")
+    result = []
+    xor_table = []
+
+    # Loop through each character in the attack payload
+    for char in attack_payload:
+        list_sub = substitution_table[
+            char
+        ]  # Get substitution list for the current character
         replace_char_list = []
         replace_char_prob_list = []
-        # if the attack payload only has a match of 1 list in the sub table, then
-        # use that as the substitute and add to the result and xor list
+
+        # If there is only one substitution option, use it directly
         if len(list_sub) == 1:
-            temp = (list_sub[0])[0]
+            # Unpack the tuple directly in the variable temp
+            temp, _ = list_sub[0]
             result.append(temp)
-            or1 = ord(attack_payload[i])
-            or2 = ord(temp)
-            final_xord = or1 ^ or2
-            xor_table.append(chr(final_xord))
-
-        # otherwise calculate the weights of each value in the
-        # mapping and randomly select one to enter into the xor and result table
+            # Calculate the XOR value and add to the xor_table
+            xor_value = ord(char) ^ ord(temp)
+            xor_table.append(chr(xor_value))
         else:
-            total = 0
-            # get total weight
-            for j in range(len(list_sub)):
-                total += (list_sub[j])[1]
-            for x in range(len(list_sub)):
-                sub_prob_list[(list_sub[x])[0]] = ((list_sub[x])[1]) / total
-                replace_char_list.append((list_sub[x])[0])
-                replace_char_prob_list.append((list_sub[x])[1] / total)
+            # Calculate total weight and probability list using a single loop
+            total = sum(weight for _, weight in list_sub)
+            sub_prob_list = {char: weight / total for char, weight in list_sub}
+            replace_char_list, replace_char_prob_list = zip(*sub_prob_list.items())
 
-            # total_prob=0
-            # only used to verify normalization = 1
-            # for w in sub_prob_list.values():
-            #    total_prob += w;
-            ##
-
-            # make  a selection from the mapping based on its probablity
+            # Make a selection based on the calculated probabilities
             random_val = numpy.random.choice(
-                a=replace_char_list, p=replace_char_prob_list
+                replace_char_list, p=replace_char_prob_list
             )
             result.append(random_val)
-            or1 = ord(attack_payload[i])
-            or2 = ord(random_val)
-            final_xord = or1 ^ or2
-            xor_table.append(chr(final_xord))
+            # Calculate the XOR value and add to the xor_table
+            xor_value = ord(char) ^ ord(random_val)
+            xor_table.append(chr(xor_value))
 
-    return (xor_table, result)
+    # Join the result list into a string before returning
+    encrypted_result = "".join(result)
+    return (xor_table, encrypted_result)
 
 
 def getSubstitutionTable(artificial_payload, attack_payload):
