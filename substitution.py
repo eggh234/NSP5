@@ -34,38 +34,34 @@ def substitute(attack_payload, substitution_table):
     result = []
     xor_table = []
 
-    # Loop through each character in the attack payload
-    for char in attack_payload:
+    i = 0  # Initialize loop counter for main while loop
+    # Loop through each character in the attack payload using a while loop
+    while i < len(attack_payload):
+        char = attack_payload[i]  # Access the current character
         list_sub = substitution_table[
             char
         ]  # Get substitution list for the current character
-        replace_char_list = []
-        replace_char_prob_list = []
 
         # If there is only one substitution option, use it directly
         if len(list_sub) == 1:
-            # Unpack the tuple directly in the variable temp
             temp, _ = list_sub[0]
             result.append(temp)
-            # Calculate the XOR value and add to the xor_table
             xor_value = ord(char) ^ ord(temp)
             xor_table.append(chr(xor_value))
         else:
-            # Calculate total weight and probability list using a single loop
             total = sum(weight for _, weight in list_sub)
             sub_prob_list = {char: weight / total for char, weight in list_sub}
             replace_char_list, replace_char_prob_list = zip(*sub_prob_list.items())
 
-            # Make a selection based on the calculated probabilities
             random_val = numpy.random.choice(
                 replace_char_list, p=replace_char_prob_list
             )
             result.append(random_val)
-            # Calculate the XOR value and add to the xor_table
             xor_value = ord(char) ^ ord(random_val)
             xor_table.append(chr(xor_value))
 
-    # Join the result list into a string before returning
+        i += 1  # Increment loop counter
+
     encrypted_result = "".join(result)
     return (xor_table, encrypted_result)
 
