@@ -10,56 +10,51 @@ from frequency import *
 
 
 def substitute(attack_payload, substitution_table):
+    # Convert the attack payload to a mutable bytearray for easier manipulation.
     b_attack_payload = bytearray(attack_payload, "utf8")
     result = []
     xor_table = []
 
     i = 0
-    while i < len(attack_payload):
+    # Iterate through the byte array representation of the attack payload.
+    while i < len(b_attack_payload):
+        current_byte = b_attack_payload[i]
         list_sub = substitution_table[
-            attack_payload[i]
-        ]  # Get the substitution list for the current character.
+            chr(current_byte)
+        ]  # Access substitution using character representation.
         replacement_list = []
         replacement_prob_list = []
 
-        # If there's only one substitution option, use it directly.
-        if len(list_sub) == 1:
-            temp = list_sub[0][0]  # The character to substitute.
+        # Handling the substitution based on the size of the list_sub.
+        while len(list_sub) == 1:
+            # Directly use the single substitution character.
+            temp = list_sub[0][0]
             result.append(temp)
-            # Compute XOR for the original and substituted character to facilitate decryption.
-            or1 = ord(attack_payload[i])
-            or2 = ord(temp)
-            Xord_value = or1 ^ or2
-            xor_table.append(chr(Xord_value))
-        else:
-            # Calculate total weight for the substitution characters.
-            j = 0
-            total = 0
-            while j < len(list_sub):
-                total += list_sub[j][1]
-                j += 1
+            # XOR the original and substituted characters to encrypt/decrypt.
+            xor_value = current_byte ^ ord(temp)
+            xor_table.append(chr(xor_value))
+            break  # Break to mimic the functionality of an 'if' statement.
 
-            # Calculate probabilities for each substitution character.
+        # When there are multiple options, calculate the best substitution based on their probabilities.
+        if len(list_sub) > 1:
+            total_weight = sum(weight for _, weight in list_sub)
             x = 0
+            # Build replacement lists for random choice selection.
             while x < len(list_sub):
                 char, weight = list_sub[x]
                 replacement_list.append(char)
-                replacement_prob_list.append(weight / total)
+                replacement_prob_list.append(weight / total_weight)
                 x += 1
 
-            # Select a character based on calculated probabilities.
-            random_val = numpy.random.choice(
-                a=replacement_list, p=replacement_prob_list
-            )
+            # Choose a substitute character based on the weighted probabilities.
+            random_val = numpy.random.choice(replacement_list, p=replacement_prob_list)
             result.append(random_val)
-            or1 = ord(attack_payload[i])
-            or2 = ord(random_val)
-            Xord_value = or1 ^ or2
-            xor_table.append(chr(Xord_value))
+            xor_value = current_byte ^ ord(random_val)
+            xor_table.append(chr(xor_value))
 
-        i += 1
+        i += 1  # Move to the next byte in the payload.
 
-    return (xor_table, result)
+    return (xor_table, "".join(result))
 
 
 def getSubstitutionTable(artificial_payload, attack_payload):
