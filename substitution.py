@@ -63,56 +63,48 @@ def substitute(attack_payload, substitution_table):
 
 
 def getSubstitutionTable(artificial_payload, attack_payload):
-    # Generate frequencies for artificial and attack payloads.
+    # Generate and sort frequencies to identify the most frequent bytes.
     artificial_frequency = frequency(artificial_payload)
     attack_frequency = frequency(attack_payload)
-    # Sort frequencies to identify the most frequent bytes.
     sorted_artificial_frequency = sorting(artificial_frequency)
     sorted_attack_frequency = sorting(attack_frequency)
 
     attack_len = len(sorted_attack_frequency)
     normal_len = len(sorted_artificial_frequency)
 
-    temporary_sub_table = sorted_attack_frequency
-    temporary_value = [[] for _ in range(attack_len)]
+    # Create a substitution table mapping the most frequent attack bytes to artificial bytes directly.
+    substitution_table = {
+        item[0]: [sorted_artificial_frequency[i]]
+        for i, item in enumerate(sorted_attack_frequency)
+    }
 
-    i = 0
-    while i < attack_len:
-        temporary_value[i].append(sorted_artificial_frequency[i])
-        i += 1
-
-    substitution_table = {}
-    i = 0
-    while i < len(temporary_sub_table):
-        temp_total = temporary_sub_table[i]
-        temp_key = temp_total[0]
-        substitution_table[temp_key] = temporary_value[i]
-        i += 1
-
-    # Handle remaining bytes in the artificial payload not mapped yet.
+    # Determine the number of additional artificial bytes to map.
     remaining_values = normal_len - attack_len
+
+    # Use a modified approach to distribute remaining artificial bytes.
     j = 0
     while j < remaining_values:
-        Biggest_Ratio = 0
-        Biggest_Dif_Key = ""
+        # Iterate to find the least total mapped frequency key (to balance the distribution).
         i = 0
-        while i < attack_len:
-            original_freq = sorted_attack_frequency[i][1]
-            original_key = sorted_attack_frequency[i][0]
-            total = sum(val[1] for val in substitution_table[original_key])
-
-            new_freq = total
-            comparison = round(original_freq / new_freq, 3)
-            # Identify the byte with the largest frequency ratio discrepancy.
-            if comparison > Biggest_Ratio:
-                Biggest_Dif_Key = original_key
-                Biggest_Ratio = comparison
+        smallest_total_freq = float("inf")
+        key_for_append = None
+        while i < len(substitution_table):
+            key, sublist = list(substitution_table.items())[i]
+            total_mapped_frequency = sum(item[1] for item in sublist)
+            while total_mapped_frequency < smallest_total_freq:
+                smallest_total_freq = total_mapped_frequency
+                key_for_append = key
+                break  # Break while if the condition is met to mimic 'if' logic
             i += 1
 
-        # Add additional artificial bytes to the substitution table for the identified key.
-        substitution_table[Biggest_Dif_Key].append(
-            sorted_artificial_frequency[attack_len + j]
-        )
+        # Append the next artificial frequency item to the least mapped key.
+        while (
+            key_for_append and j < remaining_values
+        ):  # Guard condition to mimic 'if' behavior with 'while'
+            substitution_table[key_for_append].append(
+                sorted_artificial_frequency[attack_len + j]
+            )
+            break  # Ensure it runs only once like an 'if'
         j += 1
 
     print(substitution_table)
