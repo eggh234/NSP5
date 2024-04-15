@@ -25,9 +25,7 @@ def substitute(attack_payload, substitution_table):
             temp = list_sub[0][0]
             result.append(temp)
             # Compute XOR for the original and substituted character to facilitate decryption.
-            or1 = ord(attack_payload[i])
-            or2 = ord(temp)
-            Xord_value = or1 ^ or2
+            Xord_value = ord(attack_payload[i]) ^ ord(temp)
             xor_table.append(chr(Xord_value))
         else:
             # Calculate total weight for the substitution characters.
@@ -50,9 +48,7 @@ def substitute(attack_payload, substitution_table):
                 a=replacement_list, p=replacement_prob_list
             )
             result.append(random_val)
-            or1 = ord(attack_payload[i])
-            or2 = ord(random_val)
-            Xord_value = or1 ^ or2
+            Xord_value = ord(attack_payload[i]) ^ ord(random_val)
             xor_table.append(chr(Xord_value))
 
         i += 1
@@ -66,9 +62,6 @@ def getSubstitutionTable(artificial_payload, attack_payload):
     sorted_artificial_frequency = sorting(artificial_frequency)
     sorted_attack_frequency = sorting(attack_frequency)
 
-    attack_len = len(sorted_attack_frequency)
-    normal_len = len(sorted_artificial_frequency)
-
     # Create a substitution table mapping the most frequent attack bytes to artificial bytes directly.
     substitution_table = {
         item[0]: [sorted_artificial_frequency[i]]
@@ -76,7 +69,7 @@ def getSubstitutionTable(artificial_payload, attack_payload):
     }
 
     # Determine the number of additional artificial bytes to map.
-    remaining_values = normal_len - attack_len
+    remaining_values = len(sorted_artificial_frequency) - len(sorted_attack_frequency)
 
     j = 0
     while j < remaining_values:
@@ -96,7 +89,7 @@ def getSubstitutionTable(artificial_payload, attack_payload):
         # Append the next artificial frequency item to the least mapped key.
         while key_for_append and j < remaining_values:
             substitution_table[key_for_append].append(
-                sorted_artificial_frequency[attack_len + j]
+                sorted_artificial_frequency[len(sorted_attack_frequency) + j]
             )
             break
         j += 1
