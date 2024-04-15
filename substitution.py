@@ -10,55 +10,57 @@ from frequency import *
 
 
 def substitute(attack_payload, substitution_table):
-    # Convert the attack payload to a mutable bytearray for easier manipulation.
     b_attack_payload = bytearray(attack_payload, "utf8")
     result = []
     xor_table = []
 
     i = 0
-    # Iterate through the byte array representation of the attack payload.
-    while i < len(b_attack_payload):
-        current_byte = b_attack_payload[i]
-        list_sub = substitution_table[
-            chr(current_byte)
-        ]  # Access substitution using character representation.
+    while i < len(attack_payload):
+        list_sub = substitution_table[attack_payload[i]]
         replacement_list = []
         replacement_prob_list = []
 
-        # Handling the substitution based on the size of the list_sub.
-        while len(list_sub) == 1:
-            # Directly use the single substitution character.
+        # If there's only one substitution option, use it directly.
+        if len(list_sub) == 1:
             temp = list_sub[0][0]
             result.append(temp)
-            # XOR the original and substituted characters to encrypt/decrypt.
-            xor_value = current_byte ^ ord(temp)
-            xor_table.append(chr(xor_value))
-            break  # Break to mimic the functionality of an 'if' statement.
+            # Compute XOR for the original and substituted character to facilitate decryption.
+            or1 = ord(attack_payload[i])
+            or2 = ord(temp)
+            Xord_value = or1 ^ or2
+            xor_table.append(chr(Xord_value))
+        else:
+            # Calculate total weight for the substitution characters.
+            j = 0
+            total = 0
+            while j < len(list_sub):
+                total += list_sub[j][1]
+                j += 1
 
-        # When there are multiple options, calculate the best substitution based on their probabilities.
-        if len(list_sub) > 1:
-            total_weight = sum(weight for _, weight in list_sub)
+            # Calculate probabilities for each substitution character.
             x = 0
-            # Build replacement lists for random choice selection.
             while x < len(list_sub):
                 char, weight = list_sub[x]
                 replacement_list.append(char)
-                replacement_prob_list.append(weight / total_weight)
+                replacement_prob_list.append(weight / total)
                 x += 1
 
-            # Choose a substitute character based on the weighted probabilities.
-            random_val = numpy.random.choice(replacement_list, p=replacement_prob_list)
+            # Select a character based on calculated probabilities.
+            random_val = numpy.random.choice(
+                a=replacement_list, p=replacement_prob_list
+            )
             result.append(random_val)
-            xor_value = current_byte ^ ord(random_val)
-            xor_table.append(chr(xor_value))
+            or1 = ord(attack_payload[i])
+            or2 = ord(random_val)
+            Xord_value = or1 ^ or2
+            xor_table.append(chr(Xord_value))
 
-        i += 1  # Move to the next byte in the payload.
+        i += 1
 
-    return (xor_table, "".join(result))
+    return (xor_table, result)
 
 
 def getSubstitutionTable(artificial_payload, attack_payload):
-    # Generate and sort frequencies to identify the most frequent bytes.
     artificial_frequency = frequency(artificial_payload)
     attack_frequency = frequency(attack_payload)
     sorted_artificial_frequency = sorting(artificial_frequency)
@@ -76,10 +78,9 @@ def getSubstitutionTable(artificial_payload, attack_payload):
     # Determine the number of additional artificial bytes to map.
     remaining_values = normal_len - attack_len
 
-    # Use a modified approach to distribute remaining artificial bytes.
     j = 0
     while j < remaining_values:
-        # Iterate to find the least total mapped frequency key (to balance the distribution).
+        # Iterate to find the least total mapped frequency key
         i = 0
         smallest_total_freq = float("inf")
         key_for_append = None
@@ -89,17 +90,15 @@ def getSubstitutionTable(artificial_payload, attack_payload):
             while total_mapped_frequency < smallest_total_freq:
                 smallest_total_freq = total_mapped_frequency
                 key_for_append = key
-                break  # Break while if the condition is met to mimic 'if' logic
+                break
             i += 1
 
         # Append the next artificial frequency item to the least mapped key.
-        while (
-            key_for_append and j < remaining_values
-        ):  # Guard condition to mimic 'if' behavior with 'while'
+        while key_for_append and j < remaining_values:
             substitution_table[key_for_append].append(
                 sorted_artificial_frequency[attack_len + j]
             )
-            break  # Ensure it runs only once like an 'if'
+            break
         j += 1
 
     print(substitution_table)
